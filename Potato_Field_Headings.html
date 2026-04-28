@@ -1,0 +1,584 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Field Heading Lookup</title>
+<link href="https://fonts.googleapis.com/css2?family=DM+Mono:wght@400;500&family=DM+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<style>
+  *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+
+  :root {
+    --bg:       #f7f4ee;
+    --surface:  #ffffff;
+    --border:   #ddd8cc;
+    --accent:   #2d5a27;
+    --accent2:  #c8a84b;
+    --danger:   #b94040;
+    --text:     #1a1a18;
+    --muted:    #8a8678;
+    --tag-bg:   #e8f0e5;
+  }
+
+  body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    min-height: 100vh;
+  }
+
+  /* ── Header ── */
+  .header {
+    background: var(--accent);
+    padding: 18px 20px 16px;
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 12px;
+    position: sticky;
+    top: 0;
+    z-index: 100;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+  }
+
+  .header-left h1 {
+    font-size: 1.05rem;
+    font-weight: 700;
+    color: #fff;
+    letter-spacing: 0.02em;
+  }
+
+  .header-left p {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: rgba(255,255,255,0.6);
+    margin-top: 2px;
+  }
+
+  .add-btn {
+    background: var(--accent2);
+    color: #1a1a18;
+    border: none;
+    border-radius: 6px;
+    padding: 8px 14px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.85rem;
+    cursor: pointer;
+    white-space: nowrap;
+    flex-shrink: 0;
+    transition: opacity 0.15s;
+  }
+  .add-btn:hover { opacity: 0.85; }
+
+  /* ── Search ── */
+  .search-section {
+    padding: 16px 16px 0;
+    max-width: 680px;
+    margin: 0 auto;
+  }
+
+  .search-wrap {
+    position: relative;
+  }
+
+  #search {
+    width: 100%;
+    background: var(--surface);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 1rem;
+    padding: 12px 44px 12px 14px;
+    border-radius: 8px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  #search:focus { border-color: var(--accent); }
+  #search::placeholder { color: var(--muted); }
+
+  .clear-btn {
+    position: absolute; right: 12px; top: 50%;
+    transform: translateY(-50%);
+    background: none; border: none;
+    color: var(--muted); font-size: 1.1rem;
+    cursor: pointer; display: none; padding: 4px;
+  }
+  .clear-btn:hover { color: var(--text); }
+
+  .stats {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.72rem;
+    color: var(--muted);
+    margin-top: 8px;
+    padding: 0 2px;
+    min-height: 16px;
+  }
+
+  /* ── Results ── */
+  .results {
+    max-width: 680px;
+    margin: 10px auto 80px;
+    padding: 0 16px;
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+  }
+
+  .card {
+    background: var(--surface);
+    border: 1px solid var(--border);
+    border-radius: 8px;
+    padding: 12px 14px;
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 2px 12px;
+    align-items: center;
+    transition: border-color 0.15s;
+  }
+  .card:hover { border-color: var(--accent); }
+
+  .field-name {
+    font-weight: 600;
+    font-size: 0.95rem;
+    grid-column: 1; grid-row: 1;
+  }
+  .field-name mark {
+    background: #d4edcc;
+    color: var(--accent);
+    border-radius: 2px;
+    padding: 0 1px;
+  }
+
+  .field-meta {
+    font-family: 'DM Mono', monospace;
+    font-size: 0.7rem;
+    color: var(--muted);
+    grid-column: 1; grid-row: 2;
+    display: flex;
+    gap: 10px;
+    align-items: center;
+    flex-wrap: wrap;
+  }
+
+  .heading-badge {
+    font-family: 'DM Mono', monospace;
+    font-size: 1.25rem;
+    font-weight: 500;
+    color: var(--accent);
+    grid-column: 2; grid-row: 1 / 3;
+    text-align: right;
+    white-space: nowrap;
+    display: flex;
+    flex-direction: column;
+    align-items: flex-end;
+    gap: 2px;
+  }
+
+  .heading-dir {
+    font-size: 0.62rem;
+    color: var(--muted);
+    font-weight: 400;
+  }
+
+  .card-actions {
+    grid-column: 1 / 3;
+    display: flex;
+    gap: 8px;
+    margin-top: 6px;
+    padding-top: 8px;
+    border-top: 1px solid var(--border);
+  }
+
+  .btn-edit, .btn-delete {
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 4px 10px;
+    border-radius: 4px;
+    cursor: pointer;
+    border: 1px solid;
+    transition: opacity 0.15s;
+  }
+  .btn-edit { background: var(--tag-bg); color: var(--accent); border-color: #b8d4b2; }
+  .btn-delete { background: #fbeaea; color: var(--danger); border-color: #e8c0c0; }
+  .btn-edit:hover, .btn-delete:hover { opacity: 0.75; }
+
+  .custom-tag {
+    background: var(--tag-bg);
+    color: var(--accent);
+    font-size: 0.62rem;
+    font-weight: 600;
+    padding: 1px 5px;
+    border-radius: 3px;
+    letter-spacing: 0.04em;
+  }
+
+  .empty-state {
+    text-align: center;
+    color: var(--muted);
+    font-size: 0.85rem;
+    padding: 50px 0;
+    line-height: 2;
+  }
+  .empty-state .icon { font-size: 2.5rem; display: block; margin-bottom: 8px; opacity: 0.4; }
+
+  /* ── Modal ── */
+  .modal-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 200;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .modal-overlay.open { display: flex; }
+
+  .modal {
+    background: var(--surface);
+    border-radius: 12px;
+    padding: 24px;
+    width: 100%;
+    max-width: 420px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  }
+
+  .modal h2 {
+    font-size: 1.1rem;
+    font-weight: 700;
+    margin-bottom: 18px;
+    color: var(--accent);
+  }
+
+  .form-group {
+    margin-bottom: 14px;
+  }
+
+  .form-group label {
+    display: block;
+    font-size: 0.78rem;
+    font-weight: 600;
+    color: var(--muted);
+    margin-bottom: 5px;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+  }
+
+  .form-group input {
+    width: 100%;
+    background: var(--bg);
+    border: 1.5px solid var(--border);
+    color: var(--text);
+    font-family: 'DM Sans', sans-serif;
+    font-size: 0.95rem;
+    padding: 10px 12px;
+    border-radius: 6px;
+    outline: none;
+    transition: border-color 0.2s;
+  }
+  .form-group input:focus { border-color: var(--accent); }
+
+  .modal-actions {
+    display: flex;
+    gap: 10px;
+    margin-top: 20px;
+  }
+
+  .btn-save {
+    flex: 1;
+    background: var(--accent);
+    color: #fff;
+    border: none;
+    border-radius: 6px;
+    padding: 11px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+    transition: opacity 0.15s;
+  }
+  .btn-save:hover { opacity: 0.85; }
+
+  .btn-cancel {
+    flex: 0 0 auto;
+    background: none;
+    color: var(--muted);
+    border: 1.5px solid var(--border);
+    border-radius: 6px;
+    padding: 11px 16px;
+    font-family: 'DM Sans', sans-serif;
+    font-weight: 600;
+    font-size: 0.9rem;
+    cursor: pointer;
+  }
+
+  .error-msg {
+    color: var(--danger);
+    font-size: 0.78rem;
+    margin-top: 6px;
+    display: none;
+  }
+
+  /* ── Delete confirm ── */
+  .confirm-overlay {
+    display: none;
+    position: fixed; inset: 0;
+    background: rgba(0,0,0,0.45);
+    z-index: 300;
+    align-items: center;
+    justify-content: center;
+    padding: 20px;
+  }
+  .confirm-overlay.open { display: flex; }
+
+  .confirm-box {
+    background: var(--surface);
+    border-radius: 10px;
+    padding: 22px;
+    width: 100%;
+    max-width: 340px;
+    box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+    text-align: center;
+  }
+  .confirm-box p { font-size: 0.92rem; line-height: 1.5; margin-bottom: 18px; }
+  .confirm-box strong { color: var(--accent); }
+  .confirm-btns { display: flex; gap: 10px; }
+  .btn-confirm-del {
+    flex: 1; background: var(--danger); color: #fff;
+    border: none; border-radius: 6px; padding: 10px;
+    font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  }
+  .btn-confirm-cancel {
+    flex: 1; background: none; color: var(--muted);
+    border: 1.5px solid var(--border); border-radius: 6px; padding: 10px;
+    font-family: 'DM Sans', sans-serif; font-weight: 600; font-size: 0.9rem; cursor: pointer;
+  }
+</style>
+</head>
+<body>
+
+<div class="header">
+  <div class="header-left">
+    <h1>🌱 Field Heading Lookup</h1>
+    <p id="headerCount">Loading...</p>
+  </div>
+  <button class="add-btn" onclick="openAddModal()">+ Add Field</button>
+</div>
+
+<div class="search-section">
+  <div class="search-wrap">
+    <input type="text" id="search" placeholder="Search field name…" autocomplete="off" autocorrect="off" spellcheck="false" autofocus>
+    <button class="clear-btn" id="clearBtn" onclick="clearSearch()">✕</button>
+  </div>
+  <div class="stats" id="stats"></div>
+</div>
+
+<div class="results" id="results"></div>
+
+<!-- Add/Edit Modal -->
+<div class="modal-overlay" id="modalOverlay">
+  <div class="modal">
+    <h2 id="modalTitle">Add New Field</h2>
+    <div class="form-group">
+      <label>Field Name</label>
+      <input type="text" id="inputName" placeholder="e.g. Brown 24">
+      <div class="error-msg" id="nameError">Field name is required.</div>
+    </div>
+    <div class="form-group">
+      <label>Heading (°)</label>
+      <input type="text" id="inputHeading" placeholder="e.g. 90">
+      <div class="error-msg" id="headingError">Heading is required.</div>
+    </div>
+    <div class="form-group">
+      <label>Date Planted</label>
+      <input type="date" id="inputDate">
+    </div>
+    <div class="modal-actions">
+      <button class="btn-cancel" onclick="closeModal()">Cancel</button>
+      <button class="btn-save" onclick="saveField()">Save Field</button>
+    </div>
+  </div>
+</div>
+
+<!-- Delete Confirm -->
+<div class="confirm-overlay" id="confirmOverlay">
+  <div class="confirm-box">
+    <p>Delete <strong id="confirmName"></strong>? This cannot be undone.</p>
+    <div class="confirm-btns">
+      <button class="btn-confirm-cancel" onclick="closeConfirm()">Cancel</button>
+      <button class="btn-confirm-del" onclick="confirmDelete()">Delete</button>
+    </div>
+  </div>
+</div>
+
+<script>
+// ── Seed data ──
+const SEED = [{"field_name":"Brown #14","date":"2024-03-30","heading":"0"},{"field_name":"Brown #41","date":"2024-03-29","heading":"90"},{"field_name":"Brown #42","date":"2024-03-28","heading":"90"},{"field_name":"Brown #43","date":"2024-03-28","heading":"180"},{"field_name":"Brown 15","date":"2023-03-31","heading":"100"},{"field_name":"Brown 24","date":"2024-04-03","heading":"90"},{"field_name":"Brown 25","date":"2024-04-03","heading":"90"},{"field_name":"Brown 26","date":"2024-04-02","heading":"305"},{"field_name":"Brown 28","date":"2023-03-30","heading":"195"},{"field_name":"Brown 29","date":"2023-03-30","heading":"60"},{"field_name":"Brown 32","date":"2023-03-27","heading":"90"},{"field_name":"Brown 38","date":"2024-03-22","heading":"0"},{"field_name":"Brown 61","date":"2023-03-28","heading":"226"},{"field_name":"Brown 6A","date":"2023-03-28","heading":"55"},{"field_name":"Brown 82","date":"2024-03-27","heading":"90"},{"field_name":"Brown 97","date":"2023-03-31","heading":"160"},{"field_name":"Brown Bo-1","date":"2024-04-05","heading":"0"},{"field_name":"Brown DV-1","date":"2024-03-26","heading":"133"},{"field_name":"Brown DV-10","date":"2023-03-29","heading":"144"},{"field_name":"Brown DV-2","date":"2024-03-26","heading":"140"},{"field_name":"Brown GOAT","date":"2023-03-30","heading":"115"},{"field_name":"Brown half","date":"2018-03-31","heading":"259.4457"},{"field_name":"Brown My 5","date":"2025-03-26","heading":"16"},{"field_name":"Brown My-1","date":"2024-03-20","heading":"0"},{"field_name":"Brown MY-3","date":"2024-03-23","heading":"144+ shift"},{"field_name":"Brown MY-6","date":"2024-03-22","heading":"0"},{"field_name":"Brown My-7","date":"2024-03-19","heading":"0"},{"field_name":"Brown p-west","date":"2024-03-30","heading":"90"},{"field_name":"Camble 1","date":"2025-04-11","heading":"0"},{"field_name":"Camble 2","date":"2017-04-29","heading":"29.887"},{"field_name":"Camble 20-3","date":"2018-04-30","heading":"90"},{"field_name":"Camble 20-4","date":"2018-04-30","heading":"0"},{"field_name":"Camble 3","date":"2024-05-01","heading":"0"},{"field_name":"Claasen 20-1","date":"2021-04-21","heading":"90"},{"field_name":"Claasen 20-2","date":"2023-04-21","heading":"0"},{"field_name":"Claasen 20-3","date":"2019-04-29","heading":"90"},{"field_name":"Claasen 20-4","date":"2024-04-17","heading":"0"},{"field_name":"Claasen 21-1","date":"2022-04-22","heading":"0"},{"field_name":"Claasen 22-1","date":"2024-04-18","heading":"90"},{"field_name":"Classen 16-3","date":"2025-04-24","heading":"0"},{"field_name":"Classen 17-3","date":"2025-04-15","heading":"0"},{"field_name":"Classen 17-4","date":"2020-04-21","heading":"0"},{"field_name":"Classen 21-2","date":"2018-04-21","heading":"0"},{"field_name":"E2 28-2","date":"2021-04-30","heading":"130"},{"field_name":"E2 28-4","date":"2022-05-02","heading":"0"},{"field_name":"East high 1","date":"2025-04-28","heading":"59.8221"},{"field_name":"East High 15-1","date":"2018-04-24","heading":"90"},{"field_name":"East high 15-2","date":"2023-04-22","heading":"90"},{"field_name":"East high 15-3","date":"2024-04-18","heading":"90"},{"field_name":"East high 15-4","date":"2025-04-24","heading":"90"},{"field_name":"East high 15C","date":"2024-05-03","heading":"90"},{"field_name":"East high 2","date":"2024-04-23","heading":"90"},{"field_name":"East high 22-1","date":"2020-04-24","heading":"98"},{"field_name":"East high 22-2","date":"2025-04-26","heading":"90"},{"field_name":"East high 22-3","date":"2023-04-21","heading":"90"},{"field_name":"East High 22-4","date":"2018-04-25","heading":"90"},{"field_name":"East High 3","date":"2022-04-20","heading":"90"},{"field_name":"East high 4","date":"2023-04-22","heading":"90"},{"field_name":"East high 5","date":"2025-04-26","heading":"90"},{"field_name":"East High 6","date":"2019-04-26","heading":"90"},{"field_name":"East high 7","date":"2024-04-20","heading":"90"},{"field_name":"East High 8","date":"2017-04-22","heading":"0"},{"field_name":"Fletcher 307","date":"2022-03-31","heading":"0"},{"field_name":"Fletcher 308","date":"2022-04-01","heading":"0"},{"field_name":"Fode 2 Center","date":"2022-04-02","heading":"50"},{"field_name":"Fode 2 north","date":"2022-04-27","heading":"90"},{"field_name":"Fode 2-1","date":"2022-04-26","heading":"295"},{"field_name":"Fode 2-3","date":"2025-04-14","heading":"90"},{"field_name":"Fode 225","date":"2024-05-02","heading":"0"},{"field_name":"Fode 225-SW","date":"2024-05-02","heading":"148"},{"field_name":"Fode 3-1","date":"2023-04-12","heading":"180"},{"field_name":"Fode 3-2","date":"2025-04-14","heading":"320"},{"field_name":"Fode 3-3","date":"2022-04-26","heading":"140"},{"field_name":"Fode 3-4","date":"2021-04-15","heading":"90"},{"field_name":"Fode 33-2","date":"2022-04-01","heading":"150"},{"field_name":"Fode 33-3","date":"2021-04-14","heading":"0"},{"field_name":"Fode 33-5","date":"2024-05-03","heading":"317   57.8L"},{"field_name":"Fode 33-6","date":"2024-05-03","heading":"91    52.9l"},{"field_name":"Fode 39 N","date":"2024-05-02","heading":"0"},{"field_name":"Fode 40","date":"2022-03-30","heading":"0"},{"field_name":"Fode 40 and A-B","date":"2025-05-01","heading":"0"},{"field_name":"Fode 40-A","date":"2022-03-31","heading":"330"},{"field_name":"Fode 40-B","date":"2022-03-31","heading":"25"},{"field_name":"Fode 40-C","date":"2022-03-31","heading":"0"},{"field_name":"Fode 42a","date":"2024-05-02","heading":"271"},{"field_name":"Fode 42b","date":"2024-05-02","heading":"225"},{"field_name":"Fode 42c","date":"2024-05-02","heading":"92"},{"field_name":"Fode 6","date":"2019-04-11","heading":"90"},{"field_name":"Fode mini b","date":"2019-04-16","heading":"0"},{"field_name":"Fody 1-3","date":"2023-05-08","heading":"52"},{"field_name":"Fody 232","date":"2023-05-04","heading":"131"},{"field_name":"Fody 3-4","date":"2023-05-03","heading":"90"},{"field_name":"Fody 3C","date":"2023-05-04","heading":"90"},{"field_name":"Fody 3N","date":"2023-05-04","heading":"90"},{"field_name":"Gailbreth h-9","date":"2017-05-07","heading":"145"},{"field_name":"Gailbreth hill&N","date":"2017-05-08","heading":"335"},{"field_name":"Galbreath H-5","date":"2023-05-01","heading":"180"},{"field_name":"Galbreth G5","date":"2019-05-05","heading":"0"},{"field_name":"Galbreth H-5","date":"2018-05-02","heading":"180"},{"field_name":"Galbreth H-6","date":"2018-05-01","heading":"230"},{"field_name":"Gelbreth 28-2","date":"2021-05-01","heading":"0"},{"field_name":"Gelbreth Circle B","date":"2019-05-05","heading":"90"},{"field_name":"Gering 28-1","date":"2022-04-20","heading":"90"},{"field_name":"Gering 28-2","date":"2020-04-20","heading":"320"},{"field_name":"Gering 33-1","date":"2022-04-19","heading":"195"},{"field_name":"Gering 33-2","date":"2024-04-20","heading":"355"},{"field_name":"Gering 33-3","date":"2022-04-09","heading":"90"},{"field_name":"Gering 34-1","date":"2024-04-20","heading":"0"},{"field_name":"Gering 34-2","date":"2019-04-25","heading":"0"},{"field_name":"Gering 34-3","date":"2025-05-01","heading":"0"},{"field_name":"Gering 34-4","date":"2018-04-16","heading":"180"},{"field_name":"Gering 35-1","date":"2024-04-30","heading":"90"},{"field_name":"Hiawatha 1-1","date":"2023-04-05","heading":"293"},{"field_name":"Hiawatha 1-2","date":"2023-04-06","heading":"0"},{"field_name":"Hiawatha 1-4","date":"2025-04-01","heading":"0"},{"field_name":"Hiawatha 12-2","date":"2023-04-04","heading":"90"},{"field_name":"Hiawatha 13-2","date":"2024-04-08","heading":"0"},{"field_name":"Hiawatha 13-4","date":"2023-04-03","heading":"0"},{"field_name":"Hiawatha 31-1N","date":"2019-04-05","heading":"1.8738"},{"field_name":"Hiawatha 31-2","date":"2024-04-10","heading":"0"},{"field_name":"Hiawatha 31-3","date":"2021-03-31","heading":"0"},{"field_name":"Hiawatha 31-4","date":"2023-04-11","heading":"310"},{"field_name":"Hiawatha 32-1","date":"2024-04-08","heading":"90"},{"field_name":"Hiawatha 32-3","date":"2024-04-09","heading":"180"},{"field_name":"Hiawatha 4-1","date":"2023-04-08","heading":"38"},{"field_name":"Hiawatha 5-1","date":"2025-03-29","heading":"0"},{"field_name":"Hiawatha 5-2","date":"2025-03-31","heading":"0"},{"field_name":"Hiawatha 5-3","date":"2025-03-29","heading":"0"},{"field_name":"Hiawatha 5-4","date":"2023-04-08","heading":"0"},{"field_name":"Hiawatha 6-1","date":"2024-05-23","heading":"0"},{"field_name":"Hiawatha 6-2","date":"2024-05-22","heading":"0"},{"field_name":"Hiawatha 7-1","date":"2023-04-04","heading":"90"},{"field_name":"Hiawatha 7-2","date":"2025-04-01","heading":"0"},{"field_name":"Hiawatha 7-3","date":"2023-04-03","heading":"180"},{"field_name":"Hiawatha 7-4","date":"2024-04-10","heading":"0"},{"field_name":"Hiawatha 7c","date":"2023-04-03","heading":"0"},{"field_name":"Hiawatha 8-1","date":"2025-03-28","heading":"90"},{"field_name":"Highline 19-1","date":"2024-04-13","heading":"0"},{"field_name":"Highline 19-2","date":"2023-04-20","heading":"90"},{"field_name":"Highline 19-3","date":"2025-04-23","heading":"0"},{"field_name":"Highline 19-4","date":"2020-04-17","heading":"90"},{"field_name":"Highline 23-1","date":"2025-04-16","heading":"0"},{"field_name":"Highline 23-2","date":"2022-04-25","heading":"0"},{"field_name":"Highline 23-3","date":"2022-04-25","heading":"0"},{"field_name":"Highline 23-4","date":"2023-04-19","heading":"0"},{"field_name":"Highline 24-1","date":"2024-04-12","heading":"0"},{"field_name":"Highline 24-2","date":"2024-04-12","heading":"0"},{"field_name":"Highline 24-3","date":"2025-04-17","heading":"0"},{"field_name":"Highline 24-4","date":"2023-04-19","heading":"0"},{"field_name":"Highline 25-1","date":"2024-04-15","heading":"90"},{"field_name":"Highline 25-2","date":"2023-04-20","heading":"0"},{"field_name":"Highline 25-3","date":"2025-04-19","heading":"90"},{"field_name":"Highline 26-1","date":"2022-04-27","heading":"0"},{"field_name":"Highline 26-2","date":"2022-04-01","heading":"160"},{"field_name":"Highline 26-3","date":"2023-05-03","heading":"0"},{"field_name":"Highline 26-4","date":"2025-04-19","heading":"0"},{"field_name":"Highline 30-1","date":"2018-04-18","heading":"0"},{"field_name":"Highline 30-2","date":"2025-04-23","heading":"90"},{"field_name":"Highline 30-3","date":"2023-04-13","heading":"0"},{"field_name":"Highline 30-4","date":"2022-04-23","heading":"90"},{"field_name":"Highline 31-1","date":"2025-04-19","heading":"251.0035"},{"field_name":"Highline 31-2","date":"2024-04-17","heading":"0"},{"field_name":"Highline 35-2","date":"2023-04-13","heading":"0"},{"field_name":"Highline 35-3","date":"2024-04-16","heading":"0"},{"field_name":"Highline 36-1","date":"2024-04-15","heading":"90"},{"field_name":"Highline 36-2","date":"2022-04-23","heading":"0"},{"field_name":"Hoefel 1","date":"2023-04-18","heading":"90"},{"field_name":"Hoefel 10","date":"2020-04-24","heading":"64.1518"},{"field_name":"Hoefel 16-2","date":"2025-04-16","heading":"165"},{"field_name":"Hoefel 16-4","date":"2025-04-16","heading":"90"},{"field_name":"Hoefel 2","date":"2024-05-02","heading":"140"},{"field_name":"Hoefel 20-4","date":"2022-04-25","heading":"0"},{"field_name":"Hoefel 3","date":"2022-04-26","heading":"105"},{"field_name":"Hoefel 4","date":"2025-04-17","heading":"90"},{"field_name":"Hoefel 5","date":"2020-04-09","heading":"350"},{"field_name":"Hoefel 6","date":"2023-04-17","heading":"135"},{"field_name":"Hoefel 7","date":"2023-04-17","heading":"325"},{"field_name":"Hoefel 8","date":"2023-05-01","heading":"180"},{"field_name":"Hoefel 9","date":"2022-05-02","heading":"120"},{"field_name":"Hoefel 9-4","date":"2025-04-15","heading":"0"},{"field_name":"Home 1","date":"2022-04-27","heading":"32"},{"field_name":"Home 10","date":"2024-04-16","heading":"110"},{"field_name":"Home 11","date":"2024-04-16","heading":"350"},{"field_name":"Home 12","date":"2024-04-16","heading":"90"},{"field_name":"Home 13","date":"2025-04-08","heading":"0"},{"field_name":"Home 14","date":"2025-04-08","heading":"0"},{"field_name":"Home 17","date":"2023-04-29","heading":"0"},{"field_name":"Home 3","date":"2023-04-29","heading":"90"},{"field_name":"Home 4","date":"2025-04-09","heading":"0"},{"field_name":"Home 5A","date":"2017-05-06","heading":"178.4178"},{"field_name":"Home 6","date":"2025-04-09","heading":"125"},{"field_name":"Home 7","date":"2024-04-15","heading":"107"},{"field_name":"Home 8","date":"2023-04-29","heading":"90"},{"field_name":"Home 9","date":"2025-04-10","heading":"330"},{"field_name":"Hyer 11-1","date":"2017-05-01","heading":"135"},{"field_name":"Hyer 12-1","date":"2017-05-01","heading":"95"},{"field_name":"Hyer 14-2","date":"2017-05-02","heading":"0"},{"field_name":"Hyer 14-4","date":"2017-05-01","heading":"231"},{"field_name":"Hyer 24-1","date":"2017-05-03","heading":"90"},{"field_name":"Hyer 26-2","date":"2017-05-02","heading":"73"},{"field_name":"Hyer 31-3","date":"2017-04-25","heading":"290"},{"field_name":"Hyer 35-1","date":"2017-05-03","heading":"88.7128"},{"field_name":"Hyer 35-3","date":"2017-05-03","heading":"0"},{"field_name":"Idler ABC","date":"2024-03-27","heading":"80"},{"field_name":"Jantz 26-1","date":"2022-04-28","heading":"60"},{"field_name":"Jantz 26-2","date":"2022-04-29","heading":"90"},{"field_name":"Jantz 26-3","date":"2024-04-24","heading":"90"},{"field_name":"Jantz 27-1","date":"2022-04-27","heading":"135"},{"field_name":"Jantz 27-2","date":"2024-04-24","heading":"325"},{"field_name":"Jantz 27-3","date":"2025-04-29","heading":"0"},{"field_name":"Jantz 27-4","date":"2023-04-25","heading":"90"},{"field_name":"Jantz 33-2","date":"2024-04-25","heading":"90"},{"field_name":"Jantz 33-3","date":"2022-04-22","heading":"0"},{"field_name":"Jantz 33-4","date":"2023-04-26","heading":"90"},{"field_name":"Jantz 34-1","date":"2024-04-25","heading":"90"},{"field_name":"Jantz 34-2","date":"2023-04-25","heading":"330"},{"field_name":"Jantz 34-3","date":"2025-04-29","heading":"95"},{"field_name":"Jantz 34-4","date":"2023-04-25","heading":"90"},{"field_name":"Jantz 35-1","date":"2025-04-30","heading":"0"},{"field_name":"Jantz 35-3","date":"2024-04-24","heading":"90"},{"field_name":"Jones 3 center","date":"2022-04-27","heading":"90"},{"field_name":"Jones 3-1","date":"2022-04-29","heading":"0"},{"field_name":"Jones 3-2","date":"2023-04-26","heading":"0"},{"field_name":"Jones 3-3","date":"2022-04-05","heading":"0"},{"field_name":"Jones 3-4","date":"2025-04-28","heading":"320"},{"field_name":"Kagel 31-2","date":"2022-05-06","heading":"90"},{"field_name":"Kagele 1","date":"2023-04-14","heading":"305"},{"field_name":"Kagele 11","date":"2024-05-03","heading":"90"},{"field_name":"Kagele 11-2","date":"2018-04-25","heading":"180"},{"field_name":"Kagele 11-3","date":"2023-04-14","heading":"330"},{"field_name":"Kagele 11-4","date":"2023-04-14","heading":"225"},{"field_name":"Kagele 12-2","date":"2025-04-22","heading":"90"},{"field_name":"Kagele 12-4","date":"2021-04-24","heading":"90"},{"field_name":"Kagele 13-1","date":"2020-04-28","heading":"89.6538"},{"field_name":"Kagele 13-3","date":"2018-04-25","heading":"180"},{"field_name":"Kagele 13-4","date":"2021-04-22","heading":"0"},{"field_name":"Kagele 14-1","date":"2020-04-08","heading":"359"},{"field_name":"Kagele 14-2","date":"2025-04-05","heading":"0"},{"field_name":"Kagele 2","date":"2021-04-16","heading":"318"},{"field_name":"Kagele 23-1","date":"2018-04-26","heading":"270"},{"field_name":"Kagele 23-2","date":"2018-04-26","heading":"90"},{"field_name":"Kagele 24-4","date":"2024-04-26","heading":"95"},{"field_name":"Kagele 25-3","date":"2018-04-09","heading":"89.8408"},{"field_name":"Kagele 25-4","date":"2018-03-26","heading":"316"},{"field_name":"Kagele 26-2","date":"2025-04-23","heading":"73"},{"field_name":"Kagele 26-4","date":"2018-04-27","heading":"89"},{"field_name":"Kagele 3","date":"2024-04-30","heading":"270"},{"field_name":"Kagele 30-1","date":"2018-04-06","heading":"180.1536"},{"field_name":"Kagele 31-2","date":"2024-04-19","heading":"270"},{"field_name":"Kagele 31-4","date":"2024-04-29","heading":"37.3426"},{"field_name":"Kagele 32-3","date":"2024-04-30","heading":"0"},{"field_name":"Kagele 34-2","date":"2018-04-14","heading":"200"},{"field_name":"Kagele 35-1","date":"2021-04-21","heading":"88.7128"},{"field_name":"Kagele 35-3","date":"2021-04-22","heading":"0"},{"field_name":"Kagele 4","date":"2024-04-29","heading":"0"},{"field_name":"Kagele 7","date":"2024-04-29","heading":"15"},{"field_name":"Kagle 1","date":"2017-05-03","heading":"138"},{"field_name":"Kagle 10","date":"2023-04-29","heading":"0"},{"field_name":"Kagle 11-1","date":"2022-04-22","heading":"0"},{"field_name":"Kagle 11-4","date":"2019-05-03","heading":"225"},{"field_name":"Kagle 12-2","date":"2019-05-02","heading":"333"},{"field_name":"Kagle 13-1","date":"2024-04-25","heading":"120"},{"field_name":"Kagle 13-3","date":"2022-04-20","heading":"90"},{"field_name":"Kagle 13-4","date":"2023-04-20","heading":"0"},{"field_name":"Kagle 14-4","date":"2024-04-26","heading":"230"},{"field_name":"Kagle 2","date":"2023-04-15","heading":"140"},{"field_name":"Kagle 23-2","date":"2023-04-21","heading":"90"},{"field_name":"Kagle 24-1","date":"2022-05-07","heading":"130"},{"field_name":"Kagle 24-2","date":"2023-04-20","heading":"359.8734"},{"field_name":"Kagle 25-3","date":"2022-04-18","heading":"90"},{"field_name":"Kagle 25-4","date":"2022-05-06","heading":"315"},{"field_name":"Kagle 26-3","date":"2019-05-02","heading":"0"},{"field_name":"Kagle 26-4","date":"2022-04-19","heading":"90"},{"field_name":"Kagle 3","date":"2022-05-04","heading":"90"},{"field_name":"Kagle 30-1","date":"2023-04-22","heading":"180.1536"},{"field_name":"Kagle 30-4","date":"2023-04-24","heading":"90"},{"field_name":"Kagle 31-1","date":"2023-04-22","heading":"0"},{"field_name":"Kagle 31-3","date":"2023-04-24","heading":"90"},{"field_name":"Kagle 34-2","date":"2022-05-06","heading":"20"},{"field_name":"Kagle 35-2","date":"2023-04-21","heading":"211.9079"},{"field_name":"Kagle 6","date":"2023-05-01","heading":"0"},{"field_name":"Kagle 8","date":"2019-05-04","heading":"84.4303"},{"field_name":"Kagleville 10-1","date":"2023-04-19","heading":"90"},{"field_name":"Kagleville 10-3","date":"2024-04-26","heading":"60"},{"field_name":"Kagleville 11-2","date":"2024-04-24","heading":"0"},{"field_name":"Kagleville 12-1","date":"2023-04-19","heading":"40"},{"field_name":"Kagleville 14-3","date":"2022-05-04","heading":"90"},{"field_name":"Kagleville 15-1","date":"2022-04-03","heading":"96"},{"field_name":"Kagleville 15-4","date":"2021-04-23","heading":"0"},{"field_name":"Kagleville 20-1","date":"2023-04-15","heading":"90"},{"field_name":"Kagleville 20-2","date":"2021-04-17","heading":"110"},{"field_name":"Kagleville 20-3","date":"2022-05-02","heading":"90"},{"field_name":"Kagleville 20-4","date":"2024-04-26","heading":"70"},{"field_name":"Kagleville 20-4 S","date":"2020-04-15","heading":"48.6395"},{"field_name":"Kagleville 21-1","date":"2023-04-17","heading":"90"},{"field_name":"Kagleville 21-2","date":"2024-04-27","heading":"56.4541"},{"field_name":"Kagleville 21-3","date":"2021-04-19","heading":"35"},{"field_name":"Kagleville 21-4","date":"2022-05-03","heading":"0"},{"field_name":"Kagleville 22-1","date":"2024-04-27","heading":"308.3635"},{"field_name":"Kagleville 22-2","date":"2025-04-24","heading":"90"},{"field_name":"Kagleville 22-3","date":"2021-04-19","heading":"25"},{"field_name":"Kagleville 22-4","date":"2023-04-18","heading":"0"},{"field_name":"Kagleville 23-1","date":"2022-05-04","heading":"90"},{"field_name":"Kagleville 26-3","date":"2023-04-24","heading":"0"},{"field_name":"Kagleville 28-1","date":"2019-05-01","heading":"90"},{"field_name":"Kagleville 28-2","date":"2022-05-03","heading":"45"},{"field_name":"Kagleville 28-3","date":"2023-04-18","heading":"100"},{"field_name":"Kagleville 28-4","date":"2024-04-27","heading":"0"},{"field_name":"Kagleville 28C","date":"2022-05-02","heading":"0"},{"field_name":"Kagleville 29-3","date":"2024-04-27","heading":"0"},{"field_name":"Kagleville 29-4","date":"2023-04-17","heading":"90"},{"field_name":"Miers 1","date":"2020-03-20","heading":"0"},{"field_name":"Miers 2","date":"2020-03-21","heading":"270.4417"},{"field_name":"Miers 3","date":"2020-03-24","heading":"200"},{"field_name":"Miers 4","date":"2020-03-25","heading":"91.353"},{"field_name":"Miers 5","date":"2020-03-25","heading":"310"},{"field_name":"Miers 6","date":"2020-03-25","heading":"265.2297"},{"field_name":"Myers 1","date":"2018-03-29","heading":"315"},{"field_name":"Myers 2","date":"2018-03-30","heading":"270.6247"},{"field_name":"Myers 4","date":"2018-03-31","heading":"269.6256"},{"field_name":"Myers 6","date":"2018-03-31","heading":"277.6502"},{"field_name":"Percy 1","date":"2023-04-27","heading":"90"},{"field_name":"Percy 11","date":"2018-04-28","heading":"0"},{"field_name":"Percy 2","date":"2021-04-09","heading":"90"},{"field_name":"Percy 3","date":"2022-04-17","heading":"0"},{"field_name":"Percy 4","date":"2024-04-26","heading":"0"},{"field_name":"Percy 5","date":"2022-04-13","heading":"0"},{"field_name":"Percy 8","date":"2025-04-28","heading":"0"},{"field_name":"Percy 9","date":"2023-04-27","heading":"90"},{"field_name":"Philip\u2019s 18-3","date":"2019-04-25","heading":"270"},{"field_name":"Philip\u2019s 24-1","date":"2019-04-25","heading":"0"},{"field_name":"Phillip\u2019s 12-4","date":"2019-04-24","heading":"32"},{"field_name":"Phillips  24-1","date":"2024-04-23","heading":"0"},{"field_name":"Phillips 12-3","date":"2025-04-29","heading":"0"},{"field_name":"Phillips 12-4","date":"2024-04-22","heading":"30"},{"field_name":"Phillips 13-1","date":"2023-04-24","heading":"90"},{"field_name":"Phillips 13-2","date":"2022-04-18","heading":"90"},{"field_name":"Phillips 13-3","date":"2025-04-29","heading":"0"},{"field_name":"Phillips 13-4","date":"2024-04-22","heading":"90"},{"field_name":"Phillips 13\u20133","date":"2020-04-27","heading":"0"},{"field_name":"Phillips 18-1","date":"2025-04-30","heading":"90"},{"field_name":"Phillips 18-2","date":"2022-04-19","heading":"0"},{"field_name":"Phillips 18-3","date":"2025-04-30","heading":"270"},{"field_name":"Phillips 24-2","date":"2021-04-23","heading":"0"},{"field_name":"Phillips 24-3","date":"2020-04-28","heading":"90"},{"field_name":"Phillips 24-4","date":"2023-04-24","heading":"90"},{"field_name":"Rd 3 M3","date":"2018-04-04","heading":"35"},{"field_name":"Rd 3 M5","date":"2018-04-03","heading":"90"},{"field_name":"Shannon 1","date":"2022-04-17","heading":"300"},{"field_name":"Shannon 10-4","date":"2021-04-30","heading":"90"},{"field_name":"Shannon 11","date":"2024-04-30","heading":"300"},{"field_name":"Shannon 11-3","date":"2022-04-29","heading":"130"},{"field_name":"Shannon 12","date":"2022-04-28","heading":"139"},{"field_name":"Shannon 13","date":"2023-04-28","heading":"90"},{"field_name":"Shannon 14","date":"2023-04-28","heading":"90"},{"field_name":"Shannon 14-1","date":"2024-04-23","heading":"70"},{"field_name":"Shannon 14-3","date":"2022-04-29","heading":"90"},{"field_name":"Shannon 15","date":"2022-04-29","heading":"90"},{"field_name":"Shannon 17","date":"2022-04-28","heading":"0"},{"field_name":"Shannon 18","date":"2023-04-26","heading":"90"},{"field_name":"Shannon 19","date":"2024-05-01","heading":"221.4208"},{"field_name":"Shannon 2","date":"2024-04-18","heading":"90"},{"field_name":"Shannon 21-1","date":"2024-04-23","heading":"0"},{"field_name":"Shannon 21-2","date":"2023-04-25","heading":"330"},{"field_name":"Shannon 21-3","date":"2024-04-22","heading":"90"},{"field_name":"Shannon 21-4","date":"2023-04-25","heading":"220"},{"field_name":"Shannon 23-4","date":"2025-04-19","heading":"0"},{"field_name":"Shannon 27-2","date":"2025-04-10","heading":"10"},{"field_name":"Shannon 27-4","date":"2025-04-11","heading":"13"},{"field_name":"Shannon 3","date":"2022-04-09","heading":"0"},{"field_name":"Shannon 34-2","date":"2023-04-27","heading":"0"},{"field_name":"Shannon 34-3","date":"2017-05-04","heading":"0"},{"field_name":"Shannon 4","date":"2023-04-26","heading":"90"},{"field_name":"Shannon 5","date":"2022-04-13","heading":"200"},{"field_name":"Shannon 6","date":"2023-04-17","heading":"270"},{"field_name":"Shannon 7","date":"2024-04-19","heading":"180"},{"field_name":"Shannon 8","date":"2022-04-05","heading":"324"},{"field_name":"Shannon 9","date":"2023-04-28","heading":"90"},{"field_name":"Sparks 12-2","date":"2018-03-24","heading":"90"},{"field_name":"Stair 20-3","date":"2022-04-23","heading":"90"},{"field_name":"Stair 21-3","date":"2024-05-02","heading":"0"},{"field_name":"Stair 28-1","date":"2025-04-19","heading":"0"},{"field_name":"Stair 28-3","date":"2023-04-28","heading":"90"},{"field_name":"Stair 28-4","date":"2022-04-25","heading":"90"},{"field_name":"Stair 29-1","date":"2023-04-28","heading":"130"},{"field_name":"Stair 29-2","date":"2023-04-28","heading":"0"},{"field_name":"Stair 29-3","date":"2024-05-01","heading":"90"},{"field_name":"Stair 29-4","date":"2024-05-01","heading":"90"},{"field_name":"T-16 10-1","date":"2021-03-27","heading":"220"},{"field_name":"T-16 11-2","date":"2021-04-07","heading":"140"},{"field_name":"T-16 12-1","date":"2022-04-02","heading":"127"},{"field_name":"T-16 12-2","date":"2023-04-12","heading":"358"},{"field_name":"T-16 12-4","date":"2022-04-04","heading":"127"},{"field_name":"T-16 12c","date":"2022-04-04","heading":"180"},{"field_name":"T-16 18-1","date":"2023-04-08","heading":"90"},{"field_name":"T-16 2-1","date":"2023-04-08","heading":"0"},{"field_name":"T-16 2-2","date":"2024-04-11","heading":"45"},{"field_name":"T-16 2-3","date":"2025-04-05","heading":"50"},{"field_name":"T-16 2-4","date":"2022-04-07","heading":"42"},{"field_name":"T-16 2-w","date":"2020-04-01","heading":"110"},{"field_name":"T-16 28-2","date":"2023-04-15","heading":"0"},{"field_name":"T-16 28-3","date":"2022-04-09","heading":"0"},{"field_name":"T-16 3-1","date":"2023-04-12","heading":"0"},{"field_name":"T-16 3-2","date":"2022-04-05","heading":"180"},{"field_name":"T-16 3-3","date":"2022-04-04","heading":"0"},{"field_name":"T-16 3-4","date":"2023-04-10","heading":"0"},{"field_name":"T-16 31-2","date":"2025-04-14","heading":"90"},{"field_name":"T-16 31-4","date":"2024-04-08","heading":"90"},{"field_name":"T-16 32-1","date":"2025-04-12","heading":"90"},{"field_name":"T-16 32-3","date":"2025-04-12","heading":"245"},{"field_name":"T-16 32-4","date":"2024-04-06","heading":"310"},{"field_name":"T-16 32-C","date":"2021-03-29","heading":"180"},{"field_name":"T-16 33-1","date":"2022-04-01","heading":"180"},{"field_name":"T-16 33-2","date":"2025-04-03","heading":"300"},{"field_name":"T-16 33-3","date":"2024-04-11","heading":"330"},{"field_name":"T-16 33-4","date":"2021-03-27","heading":"230"},{"field_name":"T-16 33-C","date":"2017-04-06","heading":"140"},{"field_name":"T-16 34-1","date":"2023-04-14","heading":"90"},{"field_name":"T-16 34-2","date":null,"heading":"0"},{"field_name":"T-16 34-4","date":"2025-04-14","heading":"0"},{"field_name":"T-16 35-4","date":"2024-04-10","heading":"320"},{"field_name":"T-16 3C","date":"2020-04-03","heading":"90"},{"field_name":"T-16 3W","date":"2022-04-02","heading":"0"},{"field_name":"T-16 4-1","date":"2023-04-13","heading":"0"},{"field_name":"T-16 4-2","date":"2024-04-09","heading":"310"},{"field_name":"T-16 4-3","date":"2024-04-08","heading":"140"},{"field_name":"T-16 4-4","date":"2023-04-14","heading":"40"},{"field_name":"T-16 4-C","date":"2023-04-11","heading":"120"},{"field_name":"T-16 7-1","date":"2024-04-12","heading":"270"},{"field_name":"T-16 7-2","date":"2024-04-13","heading":"90"},{"field_name":"T-16 7-3","date":"2024-04-12","heading":"270"},{"field_name":"T-16 7-4","date":"2024-04-13","heading":"330"},{"field_name":"T-16 7C","date":"2022-04-08","heading":"0"},{"field_name":"T-16. 10-1","date":"2025-04-04","heading":"220"},{"field_name":"T16 33-4","date":"2025-04-03","heading":"230"},{"field_name":"Weber 1","date":"2022-05-03","heading":"0"},{"field_name":"Weber 2","date":"2025-04-23","heading":"0"},{"field_name":"Weber 3","date":"2023-05-01","heading":"0"},{"field_name":"Weber 4","date":"2024-04-29","heading":"0"},{"field_name":"Weber 4","date":"2020-04-16","heading":"0"}];
+
+const STORAGE_KEY = 'fieldHeadings_v1';
+let editingIndex = null;
+let deleteIndex  = null;
+
+// ── Load / save ──
+function loadData() {
+  try {
+    const saved = localStorage.getItem(STORAGE_KEY);
+    return saved ? JSON.parse(saved) : JSON.parse(JSON.stringify(SEED));
+  } catch(e) { return JSON.parse(JSON.stringify(SEED)); }
+}
+
+function saveData(data) {
+  localStorage.setItem(STORAGE_KEY, JSON.stringify(data));
+}
+
+let DATA = loadData();
+
+// ── Helpers ──
+function dirLabel(deg) {
+  const n = parseFloat(deg);
+  if (isNaN(n)) return '';
+  return ['N','NE','E','SE','S','SW','W','NW'][Math.round(n/45)%8];
+}
+
+function hl(text, q) {
+  if (!q) return text;
+  return text.replace(new RegExp(q.replace(/[.*+?^${}()|[\]\\]/g,'\\$&'),'gi'), m=>`<mark>${m}</mark>`);
+}
+
+// ── Render ──
+function render() {
+  const q = document.getElementById('search').value.trim().toLowerCase();
+  document.getElementById('clearBtn').style.display = q ? 'block' : 'none';
+  document.getElementById('headerCount').textContent = `${DATA.length} fields · 2017–2025`;
+
+  const matches = q ? DATA.filter(d => d.field_name.toLowerCase().includes(q)) : [];
+
+  if (!q) {
+    document.getElementById('stats').textContent = '';
+    document.getElementById('results').innerHTML = `<div class="empty-state"><span class="icon">🌾</span>Type a field name to search.<br>Tap <strong>+ Add Field</strong> to add a new entry.</div>`;
+    return;
+  }
+
+  document.getElementById('stats').textContent = matches.length ? `${matches.length} result${matches.length!==1?'s':''} found` : '';
+
+  if (!matches.length) {
+    document.getElementById('results').innerHTML = `<div class="empty-state"><span class="icon">🔍</span>No fields match "${q}".<br>Tap <strong>+ Add Field</strong> to add it.</div>`;
+    return;
+  }
+
+  document.getElementById('results').innerHTML = matches.map(d => {
+    const idx = DATA.indexOf(d);
+    const isCustom = idx >= SEED.length;
+    const dir = dirLabel(d.heading);
+    const headingStr = d.heading !== '' && d.heading !== null ? `${d.heading}°` : '—';
+    return `<div class="card">
+      <div class="field-name">${hl(d.field_name, q)}${isCustom ? ' <span class="custom-tag">NEW</span>' : ''}</div>
+      <div class="field-meta"><span>${d.date || '—'}</span></div>
+      <div class="heading-badge">${headingStr}<span class="heading-dir">${dir}</span></div>
+      <div class="card-actions">
+        <button class="btn-edit" onclick="openEditModal(${idx})">✏️ Edit</button>
+        <button class="btn-delete" onclick="openDeleteConfirm(${idx})">🗑 Delete</button>
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ── Search ──
+document.getElementById('search').addEventListener('input', render);
+function clearSearch() {
+  document.getElementById('search').value = '';
+  document.getElementById('search').focus();
+  render();
+}
+
+// ── Modal ──
+function openAddModal() {
+  editingIndex = null;
+  document.getElementById('modalTitle').textContent = 'Add New Field';
+  document.getElementById('inputName').value = '';
+  document.getElementById('inputHeading').value = '';
+  document.getElementById('inputDate').value = new Date().toISOString().split('T')[0];
+  document.getElementById('nameError').style.display = 'none';
+  document.getElementById('headingError').style.display = 'none';
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('inputName').focus(), 100);
+}
+
+function openEditModal(idx) {
+  editingIndex = idx;
+  const d = DATA[idx];
+  document.getElementById('modalTitle').textContent = 'Edit Field';
+  document.getElementById('inputName').value = d.field_name;
+  document.getElementById('inputHeading').value = d.heading;
+  document.getElementById('inputDate').value = d.date || '';
+  document.getElementById('nameError').style.display = 'none';
+  document.getElementById('headingError').style.display = 'none';
+  document.getElementById('modalOverlay').classList.add('open');
+  setTimeout(() => document.getElementById('inputName').focus(), 100);
+}
+
+function closeModal() {
+  document.getElementById('modalOverlay').classList.remove('open');
+}
+
+function saveField() {
+  const name    = document.getElementById('inputName').value.trim();
+  const heading = document.getElementById('inputHeading').value.trim();
+  const date    = document.getElementById('inputDate').value;
+  let valid = true;
+
+  if (!name) { document.getElementById('nameError').style.display = 'block'; valid = false; }
+  else { document.getElementById('nameError').style.display = 'none'; }
+
+  if (!heading) { document.getElementById('headingError').style.display = 'block'; valid = false; }
+  else { document.getElementById('headingError').style.display = 'none'; }
+
+  if (!valid) return;
+
+  if (editingIndex !== null) {
+    DATA[editingIndex] = { field_name: name, date: date || null, heading };
+  } else {
+    DATA.push({ field_name: name, date: date || null, heading });
+  }
+
+  saveData(DATA);
+  closeModal();
+  render();
+}
+
+// ── Delete ──
+function openDeleteConfirm(idx) {
+  deleteIndex = idx;
+  document.getElementById('confirmName').textContent = DATA[idx].field_name;
+  document.getElementById('confirmOverlay').classList.add('open');
+}
+
+function closeConfirm() {
+  document.getElementById('confirmOverlay').classList.remove('open');
+}
+
+function confirmDelete() {
+  if (deleteIndex !== null) {
+    DATA.splice(deleteIndex, 1);
+    saveData(DATA);
+    deleteIndex = null;
+  }
+  closeConfirm();
+  render();
+}
+
+// Close modals on overlay click
+document.getElementById('modalOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeModal(); });
+document.getElementById('confirmOverlay').addEventListener('click', e => { if(e.target===e.currentTarget) closeConfirm(); });
+
+// Enter key in modal
+document.addEventListener('keydown', e => {
+  if (e.key === 'Enter' && document.getElementById('modalOverlay').classList.contains('open')) saveField();
+  if (e.key === 'Escape') { closeModal(); closeConfirm(); }
+});
+
+render();
+</script>
+</body>
+</html>
